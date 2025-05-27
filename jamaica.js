@@ -1,3 +1,4 @@
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -44,9 +45,8 @@ async function startBot() {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      // هنا يمكنك طباعة QR بشكل مختلف أو حفظه، مثلاً:
-      console.log(chalk.yellow( تم استقبال QR — يرجى مسحه عبر واتساب )); 
-      // لكن لأنك تريد بدون QR، لا تفعل شيء هنا أو تعامل الجلسة مسبقًا.
+      console.log(chalk.yellow( تم استقبال QR — يرجى مسحه عبر واتساب ));
+      // ممكن تضيف هنا كود يعرض QR نصي أو يحفظه، أو تتركها هكذا لو حابب
     }
 
     if (connection ===  close ) {
