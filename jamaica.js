@@ -26,8 +26,10 @@ async function startBot() {
     browser: [BOT_NAME,  Safari ,  1.0.0 ],
   });
 
+  // تحديث بيانات الجلسة عند التغيير
   sock.ev.on( creds.update , saveCreds);
 
+  // استقبال الرسائل
   sock.ev.on( messages.upsert , async ({ messages, type }) => {
     if (type !==  notify ) return;
     const msg = messages[0];
@@ -35,11 +37,12 @@ async function startBot() {
     await messageHandler(sock, msg, { BOT_NAME, OWNER_NAME, OWNER_NUMBER });
   });
 
+  // متابعة حالة الاتصال وطباعة رمز QR عند الحاجة
   sock.ev.on( connection.update , (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log(chalk.yellow( امسح رمز QR من واتساب عبر خيار "ربط الأجهزة": ));
+      console.log(chalk.yellow( امسح رمز QR هذا من واتساب عبر خيار "ربط الأجهزة": ));
       console.log(qr);
     }
 
