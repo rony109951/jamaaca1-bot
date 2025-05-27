@@ -9,7 +9,7 @@ const pino = require( pino );
 const chalk = require( chalk );
 const figlet = require( figlet );
 const { Boom } = require( @hapi/boom );
-const messageHandler = require( ./messageHandler );
+const messageHandler = require( ./messageHandler ); // تأكد وجود هذا الملف
 
 const BOT_NAME =  جمايكا ;
 const OWNER_NAME =  روني البحيره ;
@@ -17,9 +17,7 @@ const OWNER_NUMBER =  01222843252 ;
 const BOT_NUMBER =  01224155567 ;
 
 async function startBot() {
-  // حفظ الجلسة في مجلد auth
   const { state, saveCreds } = await useMultiFileAuthState( ./auth );
-
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
@@ -29,10 +27,8 @@ async function startBot() {
     browser: [BOT_NAME,  Safari ,  1.0.0 ],
   });
 
-  // تحديث بيانات الجلسة عند تغييرها
   sock.ev.on( creds.update , saveCreds);
 
-  // استقبال الرسائل
   sock.ev.on( messages.upsert , async ({ messages, type }) => {
     if (type !==  notify ) return;
     const msg = messages[0];
@@ -40,13 +36,12 @@ async function startBot() {
     await messageHandler(sock, msg, { BOT_NAME, OWNER_NAME, OWNER_NUMBER });
   });
 
-  // متابعة حالة الاتصال
   sock.ev.on( connection.update , (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log(chalk.yellow( تم استقبال QR — يرجى مسحه عبر واتساب ));
-      // ممكن تضيف هنا كود يعرض QR نصي أو يحفظه، أو تتركها هكذا لو حابب
+      console.log(chalk.yellow( امسح رمز QR هذا من واتسابك باستخدام خيار "ربط الأجهزة": ));
+      console.log(qr);
     }
 
     if (connection ===  close ) {
