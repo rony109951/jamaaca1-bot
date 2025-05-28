@@ -1,25 +1,13 @@
 {
   "name": "jamaica-bot",
   "version": "1.0.0",
-  "description": "بوت واتساب جمايكا",
-  "main": "index.js",
+  "main": "jamaica.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node jamaica.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/your-username/jamaica-bot.git"
-  },
-  "keywords": [],
-  "author": "روني البحيره",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/your-username/jamaica-bot/issues"
-  },
-  "homepage": "https://github.com/your-username/jamaica-bot#readme",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.5.0",
-    "chalk": "^5.3.0",
-    "figlet": "^1.6.0"
+    "whatsapp-web.js": "^x.x.x", // تأكد من إصدار المكتبة الصحيح
+    "qrcode-terminal": "^x.x.x" // لو تستخدمها
   }
 }
