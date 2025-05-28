@@ -1,70 +1,35 @@
-
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  fetchLatestBaileysVersion,
-} = require( @whiskeysockets/baileys );
-const pino = require( pino );
-const chalk = require( chalk );
-const figlet = require( figlet );
+const { default: makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require( @whiskeysockets/baileys );
 const { Boom } = require( @hapi/boom );
-const messageHandler = require( ./messageHandler );
+const P = require( pino );
+const fs = require( fs );
+const qrcode = require( qrcode-terminal );
 
-const BOT_NAME =  جمايكا ;
-const OWNER_NAME =  روني البحيره ;
-const OWNER_NUMBER =  01222843252 ;
+const { state, saveState } = useSingleFileAuthState( ./session.json );
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState( ./auth );
-  const { version } = await fetchLatestBaileysVersion();
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({
+        version,
+        logger: P({ level:  silent  }),
+        auth: state
+    });
 
-  const sock = makeWASocket({
-    auth: state,
-    version,
-    logger: pino({ level:  silent  }),
-    browser: [BOT_NAME,  Safari ,  1.0.0 ],
-  });
+    sock.ev.on( creds.update , saveState);
 
-  // تحديث بيانات الجلسة عند التغيير
-  sock.ev.on( creds.update , saveCreds);
+    // ✅ عرض QR في التيرمنال
+    sock.ev.on( connection.update , ({ connection, qr }) => {
+        if (qr) {
+            qrcode.generate(qr, { small: true }); // يعرض QR في التيرمنال
+        }
 
-  // استقبال الرسائل
-  sock.ev.on( messages.upsert , async ({ messages, type }) => {
-    if (type !==  notify ) return;
-    const msg = messages[0];
-    if (!msg.message || msg.key.fromMe) return;
-    await messageHandler(sock, msg, { BOT_NAME, OWNER_NAME, OWNER_NUMBER });
-  });
-
-  // متابعة حالة الاتصال وطباعة رمز QR عند الحاجة
-  sock.ev.on( connection.update , (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      console.log(chalk.yellow( امسح رمز QR هذا من واتساب عبر خيار "ربط الأجهزة": ));
-      console.log(qr);
-    }
-
-    if (connection ===  close ) {
-      const shouldReconnect =
-        lastDisconnect &&
-        Boom.isBoom(lastDisconnect.error) &&
-        lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
-
-      if (shouldReconnect) {
-        console.log(chalk.yellowBright( إعادة الاتصال... ));
-        startBot();
-      } else {
-        console.log(chalk.redBright( تم تسجيل خروج البوت، يرجى إعادة المصادقة ));
-      }
-    } else if (connection ===  open ) {
-      console.log(chalk.greenBright(`${BOT_NAME} متصل بنجاح!`));
-    }
-  });
-
-  console.log(chalk.green(figlet.textSync(BOT_NAME)));
-  console.log(chalk.cyan(`المطور: ${OWNER_NAME} (${OWNER_NUMBER})`));
+        if (connection ===  open ) {
+            console.log( \n✅ تم الاتصال بنجاح! );
+            console.log( المطور: روني البحيره (01222843252) );
+        } else if (connection ===  close ) {
+            console.log( \n❌ تم قطع الاتصال. إعادة المحاولة... );
+            startBot(); // إعادة التشغيل تلقائياً
+        }
+    });
 }
 
 startBot();
