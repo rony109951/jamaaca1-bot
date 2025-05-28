@@ -1,45 +1,47 @@
-
-const {
-  default: makeWASocket,
-  DisconnectReason,
-  useSingleFileAuthState
-} = require( @whiskeysockets/baileys );
-const figlet = require( figlet );
 const fs = require( fs );
 const path = require( path );
-const chalk = require( chalk );
-const { Boom } = require( @hapi/boom );
-const { state, saveState } = useSingleFileAuthState( ./auth_info.json );
-const messageHandler = require( ./messageHandler );
-const { BOT_NAME, DEVELOPER_NAME, DEVELOPER_NUMBER } = require( ./config );
+const { Client } = require( whatsapp-web.js ); // أو المكتبة اللي تستخدمها
 
-async function startBot() {
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: false // تم إلغاء هذه الخاصية حسب التحذير
-  });
+const client = new Client();
 
-  sock.ev.on( connection.update , (update) => {
-    const { connection, lastDisconnect, qr } = update;
-    if (qr) {
-      console.log(chalk.yellow(`🔒 امسح الـ QR ده بسرعة:\n${qr}`));
-    }
+const commands = {};
 
-    if (connection ===  close ) {
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log(chalk.red(`📴 تم فصل الاتصال. إعادة الاتصال: ${shouldReconnect}`));
-      if (shouldReconnect) startBot();
-    } else if (connection ===  open ) {
-      console.log(chalk.green(figlet.textSync(BOT_NAME ||  JAMAICA )));
-      console.log(chalk.cyan(`المطور: ${DEVELOPER_NAME} (${DEVELOPER_NUMBER})`));
-    }
-  });
+// تحميل جميع ملفات الأوامر من مجلد commands
+const commandFiles = fs.readdirSync( ./commands ).filter(file => file.endsWith( .js ));
 
-  sock.ev.on( messages.upsert , async (m) => {
-    await messageHandler(sock, m);
-  });
-
-  sock.ev.on( creds.update , saveState);
+for (const file of commandFiles) {
+  const command = require(path.join(__dirname,  commands , file));
+  commands[command.name] = command;
 }
 
-startBot();
+// تشغيل البوت
+client.on( ready , () => {
+  console.log( بوت جمايكا شغّال! );
+});
+
+// استقبال الرسائل
+client.on( message , async (msg) => {
+  const prefix =  . ;
+  if (!msg.body.startsWith(prefix)) return;
+
+  const args = msg.body.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  let command = commands[commandName];
+
+  // لو الأمر مش موجود في الأسماء الرئيسية، ابحث في aliases
+  if (!command) {
+    command = Object.values(commands).find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+  }
+
+  if (command) {
+    try {
+      await command.execute(client, msg, args);
+    } catch (e) {
+      console.error(e);
+      await client.sendMessage(msg.from,  حدث خطأ أثناء تنفيذ الأمر. );
+    }
+  }
+});
+
+client.initialize();
