@@ -9,13 +9,11 @@ const { Boom } = require("@hapi/boom");
 const fs = require("fs");
 const path = require("path");
 
-// ملف لتخزين حالة المصادقة (تسجيل الدخول)
 const { state, saveState } = useSingleFileAuthState("./auth_info.json");
 
-// إنشاء اتصال بالواتساب
 async function startSock() {
   const { version, isLatest } = await fetchLatestBaileysVersion();
-  console.log(`Using WA version v${version.join(".")}, isLatest: ${isLatest}`);
+  console.log(`✅ Using WA version v${version.join(".")}, isLatest: ${isLatest}`);
 
   const sock = makeWASocket({
     version,
@@ -30,7 +28,7 @@ async function startSock() {
     if (connection === "close") {
       const shouldReconnect =
         (lastDisconnect?.error?.output?.statusCode) !== DisconnectReason.loggedOut;
-      console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
+      console.log("❌ Connection closed due to ", lastDisconnect?.error, ", reconnecting: ", shouldReconnect);
       if (shouldReconnect) {
         startSock();
       }
@@ -46,7 +44,7 @@ async function startSock() {
     const sender = msg.key.remoteJid;
     const messageContent = msg.message.conversation || msg.message.extendedTextMessage?.text;
 
-    console.log(`رسالة من ${sender}: ${messageContent}`);
+    console.log(`📩 رسالة من ${sender}: ${messageContent}`);
 
     if (messageContent.startsWith(".بوت")) {
       await sock.sendMessage(sender, { text: "بوت جمايكا شغال ✨" }, { quoted: msg });
