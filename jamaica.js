@@ -19,7 +19,7 @@ async function startSock() {
 
   const sock = makeWASocket({
     version,
-    printQRInTerminal: true, // لتظهر QR في التيرمنال لأول تشغيل فقط
+    printQRInTerminal: true,
     auth: state,
   });
 
@@ -29,7 +29,7 @@ async function startSock() {
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
       const shouldReconnect =
-        (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+        (lastDisconnect?.error?.output?.statusCode) !== DisconnectReason.loggedOut;
       console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
       if (shouldReconnect) {
         startSock();
@@ -39,7 +39,6 @@ async function startSock() {
     }
   });
 
-  // استقبال الرسائل
   sock.ev.on("messages.upsert", async (m) => {
     const msg = m.messages[0];
     if (!msg.message || msg.key.fromMe) return;
@@ -49,7 +48,6 @@ async function startSock() {
 
     console.log(`رسالة من ${sender}: ${messageContent}`);
 
-    // رد بسيط: لو الرسالة تبدأ بـ ".بوت" يرد
     if (messageContent.startsWith(".بوت")) {
       await sock.sendMessage(sender, { text: "بوت جمايكا شغال ✨" }, { quoted: msg });
     }
