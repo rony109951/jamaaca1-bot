@@ -1,51 +1,59 @@
+const {
+  default: makeWASocket,
+  useSingleFileAuthState,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+} = require("@whiskeysockets/baileys");
+
+const { Boom } = require("@hapi/boom");
 const fs = require("fs");
 const path = require("path");
-const { Client, LocalAuth } = require("whatsapp-web.js");
 
-// إنشاء العميل باستخدام المصادقة المحلية
-const client = new Client({
-  authStrategy: new LocalAuth(),
-});
+// ملف لتخزين حالة المصادقة (تسجيل الدخول)
+const { state, saveState } = useSingleFileAuthState("./auth_info.json");
 
-const commands = {};
+// إنشاء اتصال بالواتساب
+async function startSock() {
+  const { version, isLatest } = await fetchLatestBaileysVersion();
+  console.log(`Using WA version v${version.join(".")}, isLatest: ${isLatest}`);
 
-// تحميل جميع ملفات الأوامر من مجلد commands
-const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
+  const sock = makeWASocket({
+    version,
+    printQRInTerminal: true, // لتظهر QR في التيرمنال لأول تشغيل فقط
+    auth: state,
+  });
 
-for (const file of commandFiles) {
-  const command = require(path.join(__dirname, "commands", file));
-  commands[command.name] = command;
+  sock.ev.on("creds.update", saveState);
+
+  sock.ev.on("connection.update", (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === "close") {
+      const shouldReconnect =
+        (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+      console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
+      if (shouldReconnect) {
+        startSock();
+      }
+    } else if (connection === "open") {
+      console.log("✅ تم الاتصال بالواتساب!");
+    }
+  });
+
+  // استقبال الرسائل
+  sock.ev.on("messages.upsert", async (m) => {
+    const msg = m.messages[0];
+    if (!msg.message || msg.key.fromMe) return;
+
+    const sender = msg.key.remoteJid;
+    const messageContent = msg.message.conversation || msg.message.extendedTextMessage?.text;
+
+    console.log(`رسالة من ${sender}: ${messageContent}`);
+
+    // رد بسيط: لو الرسالة تبدأ بـ ".بوت" يرد
+    if (messageContent.startsWith(".بوت")) {
+      await sock.sendMessage(sender, { text: "بوت جمايكا شغال ✨" }, { quoted: msg });
+    }
+  });
 }
 
-// عند تشغيل البوت
-client.on("ready", () => {
-  console.log("✅ بوت جمايكا شغّال!");
-});
-
-// استقبال الرسائل
-client.on("message", async (msg) => {
-  const prefix = ".";
-  if (!msg.body.startsWith(prefix)) return;
-
-  const args = msg.body.slice(prefix.length).trim().split(/ +/);
-  const commandName = args.shift().toLowerCase();
-
-  let command = commands[commandName];
-
-  // لو مش لاقي الأمر بالاسم، شوف aliases
-  if (!command) {
-    command = Object.values(commands).find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
-  }
-
-  if (command) {
-    try {
-      await command.execute(client, msg, args);
-    } catch (e) {
-      console.error("❌ خطأ أثناء تنفيذ الأمر:", e);
-      await client.sendMessage(msg.from, { text: "❌ حدث خطأ أثناء تنفيذ الأمر." });
-    }
-  }
-});
-
-// بدء تشغيل البوت
-client.initialize();
+startSock();
