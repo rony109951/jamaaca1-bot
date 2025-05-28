@@ -1,27 +1,30 @@
-const fs = require( fs );
-const path = require( path );
-const { Client } = require( whatsapp-web.js ); // أو المكتبة اللي تستخدمها
+const fs = require("fs");
+const path = require("path");
+const { Client, LocalAuth } = require("whatsapp-web.js");
 
-const client = new Client();
+// إنشاء العميل باستخدام المصادقة المحلية
+const client = new Client({
+  authStrategy: new LocalAuth(),
+});
 
 const commands = {};
 
 // تحميل جميع ملفات الأوامر من مجلد commands
-const commandFiles = fs.readdirSync( ./commands ).filter(file => file.endsWith( .js ));
+const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
 
 for (const file of commandFiles) {
-  const command = require(path.join(__dirname,  commands , file));
+  const command = require(path.join(__dirname, "commands", file));
   commands[command.name] = command;
 }
 
-// تشغيل البوت
-client.on( ready , () => {
-  console.log( بوت جمايكا شغّال! );
+// عند تشغيل البوت
+client.on("ready", () => {
+  console.log("✅ بوت جمايكا شغّال!");
 });
 
 // استقبال الرسائل
-client.on( message , async (msg) => {
-  const prefix =  . ;
+client.on("message", async (msg) => {
+  const prefix = ".";
   if (!msg.body.startsWith(prefix)) return;
 
   const args = msg.body.slice(prefix.length).trim().split(/ +/);
@@ -29,7 +32,7 @@ client.on( message , async (msg) => {
 
   let command = commands[commandName];
 
-  // لو الأمر مش موجود في الأسماء الرئيسية، ابحث في aliases
+  // لو مش لاقي الأمر بالاسم، شوف aliases
   if (!command) {
     command = Object.values(commands).find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
   }
@@ -38,10 +41,11 @@ client.on( message , async (msg) => {
     try {
       await command.execute(client, msg, args);
     } catch (e) {
-      console.error(e);
-      await client.sendMessage(msg.from,  حدث خطأ أثناء تنفيذ الأمر. );
+      console.error("❌ خطأ أثناء تنفيذ الأمر:", e);
+      await client.sendMessage(msg.from, { text: "❌ حدث خطأ أثناء تنفيذ الأمر." });
     }
   }
 });
 
+// بدء تشغيل البوت
 client.initialize();
