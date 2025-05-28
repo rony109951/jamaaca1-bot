@@ -16,10 +16,12 @@ async function startBot() {
 
     sock.ev.on( creds.update , saveState);
 
-    // ✅ عرض QR في التيرمنال
+    // ✅ عرض QR Code في التيرمنال بدون الخاصية القديمة
     sock.ev.on( connection.update , ({ connection, qr }) => {
         if (qr) {
-            qrcode.generate(qr, { small: true }); // يعرض QR في التيرمنال
+            console.clear();
+            qrcode.generate(qr, { small: true }); // يعرض QR بشكل يدوي
+            console.log( \n📲 امسح كود QR ده بالواتساب );
         }
 
         if (connection ===  open ) {
@@ -27,7 +29,7 @@ async function startBot() {
             console.log( المطور: روني البحيره (01222843252) );
         } else if (connection ===  close ) {
             console.log( \n❌ تم قطع الاتصال. إعادة المحاولة... );
-            startBot(); // إعادة التشغيل تلقائياً
+            startBot(); // يعيد التشغيل تلقائي
         }
     });
 }
